@@ -63,16 +63,27 @@ class DownloadGUI (qt.QDialog):
         self.run.object.progress.connect(self.change)
         self.run.object.finish.connect(self.finish)
         self.thread.start(self.run)
-        self.cancel.clicked.connect(self.cancelBTN)
+        self.cancel.clicked.connect(lambda:self.closeEvent(None))
+        qt1.QShortcut("escape",self).activated.connect(lambda:self.closeEvent(None))
+        self.downloadingState=True
     def change(self,progress):
         self.downloading.setValue(progress)
     def finish(self,c):
         if c=="error":
             qt.QMessageBox.information(self,"error","error while downloading")
-            self.close()
         else:
             qt.QMessageBox.information(self,_("done"),_("downloaded"))
-            self.close()
-    def cancelBTN(self):
-        self.run.object.download.emit(False)
+        self.downloadingState=False
         self.close()
+    def closeEvent(self,event):
+        if self.downloadingState:
+            msg=qt.QMessageBox.question(self,_("alert"),_("do you wanna cancel download"),qt.QMessageBox.StandardButton.Yes | qt.QMessageBox.StandardButton.Close)
+            if msg==qt.QMessageBox.StandardButton.Yes:
+                self.downloadingState=False
+                self.run.object.download.emit(False)
+                self.close()
+            else:
+                if event: 
+                    event.ignore()
+        else:
+                self.close()
